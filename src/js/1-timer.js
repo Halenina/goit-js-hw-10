@@ -1,95 +1,148 @@
-import flatpickr from 'flatpickr';
-import 'flatpickr/dist/flatpickr.min.css';
-import iziToast from 'izitoast';
-import 'izitoast/dist/css/iziToast.min.css';
+'use strict';
+console.log("Timer");
 
-const dateTimePicker = document.getElementById('datetime-picker');
-const startButton = document.querySelector('[data-start]');
-const daysElement = document.querySelector('[data-days]');
-const hoursElement = document.querySelector('[data-hours]');
-const minutesElement = document.querySelector('[data-minutes]');
-const secondsElement = document.querySelector('[data-seconds]');
+import flatpickr from "flatpickr";
 
-let userSelectedDate;
-let timerInterval;
+import "flatpickr/dist/flatpickr.min.css";
 
-startButton.disabled = true;
+import iziToast from "izitoast";
+import Error from '../img/bi_x-octagon.svg';
+import "izitoast/dist/css/iziToast.min.css";
 
-const options = {
-  enableTime: true,
-  time_24hr: true,
-  defaultDate: new Date(),
-  minuteIncrement: 1,
+const inputDate = document.querySelector('#datetime-picker');
+inputDate.classList.add('dataset');
+const btnStart = document.querySelector('[data-start]');
+btnStart.classList.add('startbutton');
+document.querySelector('[data-start]').disabled = true;
 
-  onClose(selectedDates) {
-    userSelectedDate = selectedDates[0];
 
-    if (userSelectedDate >= new Date()) {
-      startButton.disabled = false;
-    } else {
-      startButton.disabled = true;
-      iziToast.show({
-        tittle: 'Alert',
-        message: 'Please choose a date in the future',
-      });
-    }
-  },
-};
-
-flatpickr(dateTimePicker, options);
-
-startButton.addEventListener('click', () => {
-  startButton.disabled = true;
-
-  const currentTime = Date.now();
-  const elapsedTime = userSelectedDate.getTime() - currentTime;
-
-  displayRemainingTime(elapsedTime);
-
-  timerInterval = setInterval(() => {
-    const currentTime = Date.now();
-    const elapsedTime = userSelectedDate.getTime() - currentTime;
-
-    if (elapsedTime <= 0) {
-      clearInterval(timerInterval);
-      updateTimerInterface(0, 0, 0, 0);
-    } else {
-      displayRemainingTime(elapsedTime);
-    }
-  }, 1000);
-});
-
-function updateTimerInterface(
-  displayedDays,
-  displayedHours,
-  displayedMinutes,
-  displayedSeconds
-) {
-  daysElement.textContent = addLeadingZero(displayedDays);
-  hoursElement.textContent = addLeadingZero(displayedHours);
-  minutesElement.textContent = addLeadingZero(displayedMinutes);
-  secondsElement.textContent = addLeadingZero(displayedSeconds);
-}
-
-function addLeadingZero(value) {
-  return String(value).padStart(2, '0');
-}
-
-function displayRemainingTime(elapsedTime) {
-  const { days, hours, minutes, seconds } = convertMs(elapsedTime);
-  updateTimerInterface(days, hours, minutes, seconds);
-}
+let intervalId = null;
+let userSelectedDate = null;
 
 function convertMs(ms) {
-  const second = 1000;
-  const minute = second * 60;
-  const hour = minute * 60;
-  const day = hour * 24;
 
-  const days = Math.floor(ms / day);
-  const hours = Math.floor((ms % day) / hour);
-  const minutes = Math.floor(((ms % day) % hour) / minute);
-  const seconds = Math.floor((((ms % day) % hour) % minute) / second);
+	const second = 1000;
+	const minute = second * 60;
+	const hour = minute * 60;
+	const day = hour * 24;
 
-  return { days, hours, minutes, seconds };
+	
+	const days = Math.floor(ms / day);
+
+	const hours = Math.floor((ms % day) / hour);
+	
+	const minutes = Math.floor(((ms % day) % hour) / minute);
+	
+	const seconds = Math.floor((((ms % day) % hour) % minute) / second);
+
+	return { days, hours, minutes, seconds };
 }
+
+
+function selectedDates() {
+	if (!userSelectedDate || userSelectedDate <= Date.now() || isNaN(userSelectedDate)) {
+		iziToast.error({
+			class: 'popup-message',
+			theme: 'dark',
+			backgroundColor: '#ef4040',
+			messageColor: '#fff',
+			position: 'topRight',
+			pauseOnHover: true,
+			timeout: 3000,
+			iconUrl: Error,
+			title: 'Error',
+			message: 'Please choose a date in the future',
+		});
+		document.querySelector('[data-start]').disabled = true;
+
+	} else {
+		btnStart.removeAttribute.disabled;
+		document.querySelector('[data-start]').disabled = false;
+		btnStart.classList.add('normal');
+		inputDate.classList.add('active');
+
+
+		btnStart.addEventListener('mouseover', function () {
+			btnStart.classList.add('hover');
+		});
+
+		btnStart.addEventListener('mouseout', function () {
+			btnStart.classList.remove('hover');
+		});
+		inputDate.addEventListener('mouseover', function () {
+			inputDate.classList.add('hover');
+		});
+
+		inputDate.addEventListener('mouseout', function () {
+			inputDate.classList.remove('hover');
+		});
+
+	}
+}
+
+document.querySelector('[data-start]').addEventListener("click", () => {
+	clearInterval(intervalId);
+	selectedDates();
+
+	const selectedDate = userSelectedDate;
+
+	const currentDate = new Date();
+
+	let differenceMs = selectedDate.getTime() - currentDate.getTime();
+
+	if (differenceMs > 0) {
+
+
+
+
+		intervalId = setInterval(() => {
+
+			let { days, hours, minutes, seconds } = convertMs(differenceMs);
+			document.querySelector('[data-days]').textContent = addLeadingZero(days);
+			document.querySelector('[data-hours]').textContent = addLeadingZero(hours);
+			document.querySelector('[data-minutes]').textContent = addLeadingZero(minutes);
+			document.querySelector('[data-seconds]').textContent = addLeadingZero(seconds);
+			differenceMs -= 1000;
+
+			if (differenceMs <= 0) {
+
+				clearInterval(intervalId);
+				document.querySelector('[data-start]').disabled = false;
+				document.querySelector('#datetime-picker').disabled = false;
+
+
+			}
+
+		}, 1000);
+		document.querySelector('[data-start]').disabled = true;
+		document.querySelector('#datetime-picker').disabled = true;
+		inputDate.classList.add('disable');
+		btnStart.classList.remove('normal');
+		btnStart.classList.remove('hover');
+
+
+
+	}
+});
+
+const options = {
+	enableTime: true,
+	time_24hr: true,
+	defaultDate: new Date(),
+	minuteIncrement: 1,
+	onClose(selectedDatesArray) {
+		console.log(selectedDatesArray[0]);
+		userSelectedDate = selectedDatesArray[0];
+		selectedDates();
+	},
+};
+flatpickr("#datetime-picker", options);
+
+function addLeadingZero(value) {
+	if (value < 10) {
+		return value.toString().padStart(2, '0');
+	} else {
+		return value.toString();
+	}
+
+};
